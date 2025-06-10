@@ -1,0 +1,65 @@
+name: CI devops 2025
+on:
+  # Le workflow se lance sur les branches main et develop
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+jobs:
+  test-backend:
+    runs-on: ubuntu-24.04
+    steps:
+      # Étape 1 : Récupérer le code du dépôt
+      - uses: actions/checkout@v4
+      # Étape 2 : Installer Java JDK 21
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+      # Étape 3 : Compiler et exécuter les tests avec Maven
+      - name: Build and test with Maven
+        working-directory: simple-api
+        run: mvn clean verify
+      - name: sonar
+        run: mvn -B verify sonar:sonar -Dsonar.projectKey=admanta-kamelia_tp-devops-correction-docker -Dsonar.organization=admanta-kamelia -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=${{ secrets.SONAR_TOKEN }}  --file ./simple-api/pom.xml
+
+# define job to build and publish docker image
+  build-and-push-docker-image:
+    needs: test-backend
+    # run only when code is compiling and tests are passing
+    runs-on: ubuntu-24.04
+
+    # steps to perform in job
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build image and push backend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./simple-api
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-simple-api:latest
+
+      - name: Build image and push database
+        uses: docker/build-push-action@v6
+        with:
+          context: ./database
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-database:latest
+
+      - name: Build image and push httpd
+        uses: docker/build-push-action@v6
+        with:
+          context: ./http-server
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-httpd:latest
+
