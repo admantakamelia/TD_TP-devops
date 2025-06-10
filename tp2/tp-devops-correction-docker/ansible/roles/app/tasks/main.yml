@@ -1,0 +1,19 @@
+#SPDX-License-Identifier: MIT-0
+
+# tasks file for roles/app
+
+# roles/app/tasks/main.yml
+
+# Lancer un conteneur pour l'application
+- name: Run application container
+  docker_container:
+    name: simple-api
+    image: kamelia762/tp-devops-simple-api # Variable définie pour l'image de l'application
+    networks:
+      - name: app-network # Le même réseau que le conteneur PostgreSQL
+    env:
+      DATABASE_HOST: my_postgres # Nom du conteneur PostgreSQL
+      DATABASE_PASSWORD: pwd
+    state: started # Lance le conteneur si ce n'est pas déjà fait
+    restart_policy: always # Redémarre si nécessaire
+

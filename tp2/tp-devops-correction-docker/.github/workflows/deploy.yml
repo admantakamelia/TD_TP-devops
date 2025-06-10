@@ -1,0 +1,56 @@
+name: Ansible Deploy
+
+on:
+  workflow_run:
+    workflows: ["CI devops 2025"]
+    types:
+      - completed
+    
+
+jobs:
+  ansible-deploy:
+    runs-on: ubuntu-24.04
+   
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Install Ansible
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ansible
+          
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+          
+      - name: Test SSH connection
+        run: |
+          ssh -o ConnectTimeout=10 ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} 
+          
+      - name: Create Ansible inventory
+        run: |
+          mkdir -p ansible/inventories
+          cat > ansible/inventories/production.yml << EOF
+          all:
+            hosts:
+              production:
+                ansible_host: ${{ secrets.DEPLOY_HOST }}
+                ansible_user: ${{ secrets.DEPLOY_USER }}
+                ansible_ssh_private_key_file: ~/.ssh/id_rsa
+          EOF
+          
+      - name: Run Ansible deployment
+        run: |
+          cd ansible
+          ansible-playbook -i inventories/production.yml playbook.yml \
+            --extra-vars "database_user=${{ secrets.DATABASE_USER }}" \
+            --extra-vars "database_password=${{ secrets.DATABASE_PASSWORD }}" \
+            --extra-vars "dockerhub_username=${{ secrets.DOCKERHUB_USERNAME }}" \
+            -v
+            
+     

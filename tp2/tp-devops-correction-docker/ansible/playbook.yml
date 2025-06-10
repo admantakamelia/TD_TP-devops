@@ -1,0 +1,23 @@
+# playbook.yml
+
+- name: Deploy Dockerized Application
+  hosts: all
+  gather_facts: true
+  become: true
+
+  roles:
+    - docker
+    - docker_network
+    - db
+    - app
+    - httpd
+# ---
+# - name: Deploy Dockerized Application and Database
+#   hosts: all
+#   gather_facts: true
+#   become: true
+
+#   roles:
+#     - db  # Rôle pour PostgreSQL
+#     - app  # Rôle pour l'application
+#     - httpd
