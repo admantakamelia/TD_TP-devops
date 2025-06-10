@@ -1,0 +1,46 @@
+version: '3.9'
+
+services:
+  backend:
+    build:
+      context: ./backend/simpleapi/simpleapi
+      dockerfile : Dockerfile
+    container_name: simple-api
+    ports:
+      - "8081:8080"
+    networks:
+      - app-network
+    depends_on:
+      - database
+
+  database:
+    build: 
+      context : ./Database
+      dockerfile: Dockerfile
+    container_name: my-postgres-init
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: usr
+      POSTGRES_PASSWORD: pwd
+      POSTGRES_DB: db
+    networks:
+      - app-network
+
+  httpd:
+    build: 
+      context : ./server
+      dockerfile : Dockerfile
+    container_name: frontend
+    ports:
+      - "80:80"
+    networks:
+      - app-network
+    depends_on:
+      - backend
+
+networks:
+  app-network:
+
+volumes:
+  db-data:
